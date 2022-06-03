@@ -1,25 +1,48 @@
-import logo from './logo.svg';
-import './App.css';
+import React, {useEffect} from 'react';
+import { BrowserRouter as Router,  } from 'react-router-dom';
+import axios from 'axios';
+import User from './components/user/User';
+import Admin from './components/admin/Admin';
+import { useDispatch, useSelector } from 'react-redux';
+import { dispatcLogin, fetchUser, dispatchGetUser } from './redux/actions/authAction';
+import Login from './components/user/Screens/Login';
+import Employer from './components/admin/Employer'
 
-function App() {
+export default function App() {
+  const dispatch = useDispatch();
+  const token = useSelector(state => state.token);
+  const auth = useSelector(state => state.authReducer);
+  const {isLogged, isAdmin, user} = auth;
+
+  useEffect(() => {
+    const firstLogin = localStorage.getItem('firstLogin')
+    if(firstLogin){
+      const getToken = async () => {
+        const res = await axios.post('/user/refreshToken', null)
+        dispatch({type: 'GET_TOKEN', payload: res.data.access_token})
+      }
+      getToken()
+    }
+  },[auth.isLogged, dispatch])
+
+  useEffect(() => {
+    if(token){
+      const getUser = () => {
+        dispatch(dispatcLogin())
+
+        return fetchUser(token).then(res => {
+          dispatch(dispatchGetUser(res))
+        })
+      }
+      getUser()
+    }
+  },[token, dispatch])
   return (
+    <Router>
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      {/* <Login /> */}
+      {isAdmin ? <Admin />: user.role === 2 ? <Employer /> : <User />}
     </div>
-  );
+  </Router>
+  )
 }
-
-export default App;
